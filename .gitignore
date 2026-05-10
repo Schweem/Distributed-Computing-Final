@@ -6,6 +6,8 @@ dashboard/env/
 dashboard/venv/
 dashboard/ENV/
 
+writeup.md
+
 # ignore streamlit secrets
 dashboard/.streamlit/
 
