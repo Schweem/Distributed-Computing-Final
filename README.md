@@ -16,7 +16,7 @@ End-to-end pipeline for predicting hourly electricity demand for Florida Power &
 ## Run the Test Script
 
 ```bash
-pip install -r src/dashboard/requirements.txt
+pip install -r requirements.txt
 python test_script.py
 ```
 
