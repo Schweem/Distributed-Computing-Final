@@ -264,5 +264,16 @@ if st.button("Predict Power Demand ⚡"):
 with st.expander("Raw Model Response"):
     if "result" in locals():
         st.json(result)
+
+        # Convert to formatted JSON string
+        json_str = json.dumps(result, indent=2)
+
+        # Download button (might as well let the user download it)
+        st.download_button(
+            label="⬇ Download Prediction JSON",
+            data=json_str,
+            file_name="power_usage.json",
+            mime="application/json"
+        )
     else:
         st.caption("Cannot fetch the latest prediction (perhaps you didn't click the button?)")
