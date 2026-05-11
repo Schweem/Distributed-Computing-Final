@@ -7,7 +7,7 @@ from datetime import datetime
 # -----------------------------
 # CONFIG
 # -----------------------------
-st.set_page_config(page_title="Sarasota Power Demand Forecast", layout="wide")
+st.set_page_config(page_title="Sarasota Power Demand Forecast", layout="wide", initial_sidebar_state="collapsed")
 
 DATABRICKS_TOKEN = st.secrets["DATABRICKS_TOKEN"]
 
@@ -32,15 +32,28 @@ def get_sarasota_weather():
         "https://api.open-meteo.com/v1/forecast"
         f"?latitude={lat}&longitude={lon}"
         "&current=temperature_2m,precipitation"
+        "&hourly=temperature_2m,precipitation"
         "&temperature_unit=fahrenheit"
+        "&forecast_hours=24"
     )
 
     r = requests.get(url)
-    data = r.json()["current"]
+    data = r.json()
+    current = data["current"]
+    hourly = data["hourly"]
+
+    hourly_forecast = {}
+    for i, t in enumerate(hourly["time"]):
+        h = datetime.fromisoformat(t).hour
+        hourly_forecast[h] = {
+            "temperature": hourly["temperature_2m"][i],
+            "precip_inches": mm_to_inches(hourly["precipitation"][i])
+        }
 
     return {
-        "temperature": data["temperature_2m"],
-        "precip_mm": data["precipitation"]
+        "temperature": current["temperature_2m"],
+        "precip_mm": current["precipitation"],
+        "hourly": hourly_forecast
     }
 
 
@@ -191,10 +204,12 @@ with tab1:
     # PREDICTION
     # -----------------------------
     if st.button("Predict Power Demand ⚡"):
-
         with st.spinner("Querying Databricks model..."):
             result = score_model(features)
+        st.session_state.forecast_result = result
 
+    if "forecast_result" in st.session_state:
+        result = st.session_state.forecast_result
         pred = result["predictions"][0]
 
         st.success("Prediction complete!")
@@ -266,7 +281,8 @@ with tab1:
     # RAW OUTPUT
     # -----------------------------
     with st.expander("Raw Model Response"):
-        if "result" in locals():
+        if "forecast_result" in st.session_state:
+            result = st.session_state.forecast_result
             st.json(result)
 
             json_str = json.dumps(result, indent=2)
@@ -281,5 +297,93 @@ with tab1:
             st.caption("Cannot fetch the latest prediction (perhaps you didn't click the button?)")
 
 with tab2:
-    st.subheader("Visualization")
-    st.info("Visualization coming soon.")
+    st.subheader("Hourly Demand Profile")
+    st.caption(
+        "Predicts demand for each hour using the actual 24-hour weather forecast. "
+        "One batch request — minimal cost."
+    )
+
+    hour_labels_short = ["12a", "1a", "2a", "3a", "4a", "5a", "6a", "7a",
+                         "8a", "9a", "10a", "11a", "12p", "1p", "2p", "3p",
+                         "4p", "5p", "6p", "7p", "8p", "9p", "10p", "11p"]
+
+    if st.button("Generate Profile ⚡", key="profile_btn"):
+        with st.spinner("Fetching hourly forecast and querying model..."):
+            hourly_forecast = None
+            try:
+                weather = get_sarasota_weather()
+                hourly_forecast = weather.get("hourly")
+            except Exception:
+                pass
+
+            hourly_rows = []
+            for h in range(24):
+                if hourly_forecast and h in hourly_forecast:
+                    temp = hourly_forecast[h]["temperature"]
+                    precip = hourly_forecast[h]["precip_inches"]
+                else:
+                    temp = temperature
+                    precip = precip_inches
+                hourly_rows.append({
+                    "ds": datetime.now().isoformat(),
+                    "month": month,
+                    "precipitation": precip,
+                    "demand_lag_24h": demand_lag_24h,
+                    "temperature": temp,
+                    "hour": h,
+                    "y": 0.0,
+                    "day_of_week": day_of_week,
+                })
+            hourly_df = pd.DataFrame(hourly_rows)
+            result = score_model(hourly_df)
+
+            predictions = result["predictions"]
+            yhats = [float(p.get("yhat", 0.0)) for p in predictions]
+            uppers = [float(p.get("yhat_upper", y)) for p, y in zip(predictions, yhats)]
+            lowers = [float(p.get("yhat_lower", y)) for p, y in zip(predictions, yhats)]
+
+            st.session_state.profile_data = {
+                "yhats": yhats,
+                "uppers": uppers,
+                "lowers": lowers,
+            }
+
+    if "profile_data" in st.session_state:
+        data = st.session_state.profile_data
+        yhats = data["yhats"]
+        uppers = data["uppers"]
+        lowers = data["lowers"]
+
+        chart_df = pd.DataFrame({
+            "Hour": list(range(24)),
+            "Demand (MW)": yhats,
+            "Upper": uppers,
+            "Lower": lowers,
+            "Label": hour_labels_short,
+        })
+
+        import altair as alt
+
+        band = alt.Chart(chart_df).mark_area(opacity=0.2, color="#FF6B35").encode(
+            x=alt.X("Hour:Q", title="Hour of Day"),
+            y="Lower:Q",
+            y2="Upper:Q",
+        )
+
+        line = alt.Chart(chart_df).mark_line(color="#FF6B35", strokeWidth=3).encode(
+            x=alt.X("Hour:Q", title="Hour of Day"),
+            y=alt.Y("Demand (MW):Q", title="Demand (MW)"),
+        )
+
+        chart = (band + line).configure_axis(
+            labelExpr="datum.value == 0 ? '12a' : datum.value == 12 ? '12p' : datum.value < 12 ? datum.value + 'a' : (datum.value - 12) + 'p'"
+        )
+
+        st.altair_chart(chart, width="stretch")
+
+        peak_hour = yhats.index(max(yhats))
+        st.caption(
+            f"Peak demand at {hour_labels_short[peak_hour]} "
+            f"({max(yhats):,.0f} MW) — trough at {hour_labels_short[yhats.index(min(yhats))]} "
+            f"({min(yhats):,.0f} MW)"
+        )
