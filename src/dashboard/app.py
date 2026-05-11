@@ -186,9 +186,77 @@ if st.button("Predict Power Demand ⚡"):
 
     col1, col2, col3 = st.columns(3)
 
-    col1.metric("Predicted Demand (MW)", f"{pred.get('yhat', 'N/A')}")
-    col2.metric("Upper Bound", f"{pred.get('yhat_upper', 'N/A')}")
-    col3.metric("Lower Bound", f"{pred.get('yhat_lower', 'N/A')}")
+    # extract prediction values
+    yhat = float(pred.get("yhat", 0.0))
+    upper = float(pred.get("yhat_upper", yhat))
+    lower = float(pred.get("yhat_lower", yhat))
+
+    # demand status classification:
+    # according to FPL, these thresholds are basically what constitute
+    # high, avg, and low demand
+    if yhat < 10000:
+        status = "🟢 Low Demand"
+        status_color = "#16a34a" # green
+    elif yhat < 20000:
+        status = "🟡 Moderate Demand"
+        status_color = "#eab308" # yellow
+    else:
+        status = "🔴 Peak Demand"
+        status_color = "#dc2626" # red
+
+    # a reasonable value for a peak capacity, although it could be updated
+    # with the max value in our training data
+    max_demand = 30000.0
+    pct = min(max(yhat / max_demand, 0.0), 1.0)
+    
+    # Prominent status banner
+    st.markdown(
+        f"""
+        <div style="
+            padding: 1rem;
+            border-radius: 12px;
+            background-color: {status_color};
+            color: white;
+            text-align: center;
+            margin-bottom: 1rem;
+        ">
+            <h2 style="margin: 0;">{status}</h2>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+     # Large primary prediction metric
+    st.metric(
+        "⚡ Predicted Power Demand",
+        f"{yhat:,.0f} MW"
+    )
+
+    # Confidence interval metrics
+    col1, col2 = st.columns(2)
+    
+    col1.metric(
+        "⬇ Lower Bound",
+        f"{lower:,.0f} MW"
+    )
+    
+    col2.metric(
+        "⬆ Upper Bound",
+        f"{upper:,.0f} MW"
+    )
+    
+    # Capacity visualization
+    st.progress(pct)
+    
+    st.caption(
+        f"{pct * 100:.1f}% of assumed peak capacity "
+        f"({max_demand:,.0f} MW)"
+    )
+    
+    # Text summary of the uncertainty interval
+    st.caption(
+        f"Expected demand range: {lower:,.0f} MW – {upper:,.0f} MW"
+    )
 
 # -----------------------------
 # RAW OUTPUT
