@@ -2,7 +2,8 @@ import streamlit as st
 import requests
 import pandas as pd
 import json
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 
 # -----------------------------
 # CONFIG
@@ -96,7 +97,7 @@ st.divider()
 st.sidebar.header("Inputs")
 
 st.sidebar.markdown("**Time**")
-now = datetime.now()
+now = datetime.now(ZoneInfo("America/New_York"))
 
 use_system_time = st.sidebar.checkbox("Use current system time", value=True)
 
@@ -149,7 +150,7 @@ if use_auto_weather:
 # BUILD MODEL INPUT
 # -----------------------------
 features = pd.DataFrame([{
-    "ds": datetime.now().isoformat(),
+    "ds": now.replace(tzinfo=None).isoformat(),
     "month": month,
     "precipitation": precip_inches,
     "demand_lag_24h": demand_lag_24h,
@@ -325,7 +326,7 @@ with tab2:
                     temp = temperature
                     precip = precip_inches
                 hourly_rows.append({
-                    "ds": datetime.now().isoformat(),
+                    "ds": now.replace(tzinfo=None).isoformat(),
                     "month": month,
                     "precipitation": precip,
                     "demand_lag_24h": demand_lag_24h,
