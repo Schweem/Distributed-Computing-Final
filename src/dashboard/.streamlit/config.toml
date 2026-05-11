@@ -1,0 +1,31 @@
+[server]
+enableStaticServing = true
+
+[[theme.fontFaces]]
+family = "DMSans"
+url = "app/static/DMSans-VariableFont_opsz,wght.ttf"
+
+[[theme.fontFaces]]
+family = "DMSansHeader"
+url = "app/static/DMSans-VariableFont_opsz,wght.ttf"
+
+[[theme.fontFaces]]
+family = "JetBrainsMono"
+url = "app/static/JetBrainsMono-VariableFont_wght.ttf"
+
+[theme]
+primaryColor = "#FF6B35"
+backgroundColor = "#FEF9F0"
+secondaryBackgroundColor = "#FFF3E0"
+textColor = "#2D2B26"
+linkColor = "#FF6B35"
+borderColor = "#E8DDD0"
+showWidgetBorder = true
+baseRadius = "0.6rem"
+font = "DMSans"
+headingFont = "DMSansHeader"
+codeFont = "JetBrainsMono"
+showSidebarBorder = true
+
+[theme.sidebar]
+backgroundColor = "#F5EDE0"

@@ -10,9 +10,7 @@ writeup.md
 docs/
 
 # ignore streamlit secrets
-dashboard/.streamlit/
-dashboard/.streamlit/secrets.toml
-.streamlit
+**/.streamlit/secrets.toml
 
 
 # Byte-compiled / optimized / DLL files
