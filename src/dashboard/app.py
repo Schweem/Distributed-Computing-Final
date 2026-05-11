@@ -69,31 +69,37 @@ def score_model(dataset: pd.DataFrame):
 # -----------------------------
 # UI
 # -----------------------------
-st.title("⚡ Sarasota Power Demand Forecast Dashboard")
-st.write("Predict electricity demand using real-time weather and historical load data.")
+st.title("⚡ Sarasota Power Demand Forecast")
+st.caption(
+    "This dashboard forecasts Sarasota electricity demand using a Databricks-hosted ML model. "
+    "Adjust time, weather, and historical load in the sidebar, then click predict."
+)
 
+st.divider()
+
+# -----------------------------
+# SIDEBAR
+# -----------------------------
 st.sidebar.header("Inputs")
 
-# -----------------------------
-# TIME FEATURES
-# -----------------------------
+st.sidebar.markdown("**Time**")
 now = datetime.now()
 
 hour = st.sidebar.slider("Hour", 0, 23, now.hour)
 day_of_week = st.sidebar.slider("Day of Week (0=Mon)", 0, 6, now.weekday())
 month = st.sidebar.slider("Month", 1, 12, now.month)
 
-# -----------------------------
-# DEMAND LAG
-# -----------------------------
+st.sidebar.markdown("---")
+
+st.sidebar.markdown("**Historical Load**")
 demand_lag_24h = st.sidebar.number_input(
     "Demand Lag 24h (MW)",
     value=0.0
 )
 
-# -----------------------------
-# WEATHER MODE
-# -----------------------------
+st.sidebar.markdown("---")
+
+st.sidebar.markdown("**Weather**")
 use_auto_weather = st.sidebar.checkbox("Use real Sarasota weather", value=True)
 
 if use_auto_weather:
@@ -103,10 +109,10 @@ if use_auto_weather:
         temperature = weather["temperature"]
         precip_inches = mm_to_inches(weather["precip_mm"])
 
-        st.success("Using live Sarasota weather data")
+        st.sidebar.success("Using live Sarasota weather")
 
     except Exception:
-        st.warning("Weather API failed — using manual input")
+        st.sidebar.warning("Weather API failed — using manual input")
 
         temperature = st.sidebar.number_input("Temperature (°F)", value=80.0)
         precip_inches = st.sidebar.number_input("Precipitation (inches)", value=0.0)
@@ -130,9 +136,16 @@ features = pd.DataFrame([{
     "day_of_week": day_of_week
 }])
 
-st.subheader("Model Input Features")
-st.dataframe(features)
+with st.container():
+    st.subheader("Model Input Features")
+    st.dataframe(features)
+    st.caption(
+        "`hour` (0–23) · `day_of_week` (0=Mon) · `month` (1–12) · "
+        "`temperature` (°F) · `precipitation` (in) · "
+        "`demand_lag_24h` (MW, previous day) · `ds` (timestamp)"
+    )
 
+st.divider()
 
 # -----------------------------
 # PREDICTION
