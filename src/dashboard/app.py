@@ -136,14 +136,39 @@ features = pd.DataFrame([{
     "day_of_week": day_of_week
 }])
 
-with st.container():
-    st.subheader("Model Input Features")
-    st.dataframe(features)
-    st.caption(
-        "`hour` (0–23) · `day_of_week` (0=Mon) · `month` (1–12) · "
-        "`temperature` (°F) · `precipitation` (in) · "
-        "`demand_lag_24h` (MW, previous day) · `ds` (timestamp)"
-    )
+# with st.container():
+#     st.subheader("Model Input Features")
+#     st.dataframe(features)
+#     st.caption(
+#         "`hour` (0–23) · `day_of_week` (0=Mon) · `month` (1–12) · "
+#         "`temperature` (°F) · `precipitation` (in) · "
+#         "`demand_lag_24h` (MW, previous day) · `ds` (timestamp)"
+#     )
+
+# displaying the current weather conditions that the API fetched
+# in a prettier way
+st.subheader("Current Conditions")
+weather_col1, weather_col2, weather_col3, weather_col4 = st.columns(4)
+weather_col1.metric(
+    "🌡 Temperature",
+    f"{temperature:.1f} °F"
+)
+weather_col2.metric(
+    "🌧 Precipitation",
+    f"{precip_inches:.2f} in"
+)
+weather_col3.metric(
+    "🕒 Hour",
+    f"{hour:02d}:00"
+)
+weather_col4.metric(
+    "📍 Location",
+    "Sarasota, FL"
+)
+st.caption(
+    "Live weather data from Sarasota is used by default, but all values can be "
+    "manually overridden in the sidebar."
+)
 
 st.divider()
 
@@ -171,3 +196,5 @@ if st.button("Predict Power Demand ⚡"):
 with st.expander("Raw Model Response"):
     if "result" in locals():
         st.json(result)
+    else:
+        st.caption("Cannot fetch the latest prediction (perhaps you didn't click the button?)")
