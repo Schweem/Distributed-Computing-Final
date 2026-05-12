@@ -15,7 +15,6 @@ def score_model(dataset: pd.DataFrame):
         'Content-Type': 'application/json'
     }
     
-    # FIX: Explicitly pass only columns and data, dropping the Pandas index
     ds_dict = {
         "dataframe_split": {
             "columns": list(dataset.columns),
