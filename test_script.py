@@ -31,7 +31,6 @@ def score_model(dataset: pd.DataFrame):
         
     return response.json()
 
-# 1. Create a DataFrame with the future data you want to predict
 future_data = pd.DataFrame({
     "ds": ["2026-05-10T12:00:00"],
     "month": [5],
@@ -43,7 +42,6 @@ future_data = pd.DataFrame({
     "day_of_week": [6] # e.g., Sunday
 })
 
-# 2. Pass that DataFrame directly into your new function
 forecast = score_model(future_data)
 
 power_demand = forecast['predictions'][0].get('yhat', "N/A")
